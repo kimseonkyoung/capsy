@@ -1,16 +1,58 @@
-# Compiled class file
+# ============================
+# Capsy 런타임 데이터
+# ============================
+# capsy init이 생성하는 작업 디렉토리.
+# 개인 worklog, 프롬프트, 체크포인트 기록이 담기므로 절대 커밋 X
+.capsy/
+
+# ============================
+# Gradle 빌드 산출물 / 캐시
+# ============================
+# .gradle/ : Gradle 내부 캐시 (팀원마다 다르게 생성됨)
+# build/   : 컴파일된 클래스, jar 등 산출물
+# out/     : IntelliJ가 직접 컴파일할 때 쓰는 출력 폴더
+.gradle/
+build/
+out/
+
+# Gradle Wrapper 실행 파일/설정은 커밋 대상 (재현 가능한 빌드를 위해 필요)
+# *.jar ignore에 걸리지 않도록 wrapper jar만 예외 허용
+!gradlew
+!gradlew.bat
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# ============================
+# IntelliJ IDEA 설정
+# ============================
+# .idea/ 전체를 제외하는 게 오픈소스 기본 원칙.
+# 개인 IDE 설정(테마, workspace, 단축키)이 섞이면 충돌 발생.
+# 각자 IntelliJ에서 Gradle import하면 자동 생성되므로 불필요.
+.idea/
+
+# IntelliJ 프로젝트 파일 (예전 방식, 단일파일 프로젝트 때 생성됨)
+*.iml
+*.iws
+*.ipr
+
+# ============================
+# Java 컴파일 산출물
+# ============================
 *.class
 
-# Log file
+# ============================
+# 로그 / 임시 파일
+# ============================
 *.log
-
-# BlueJ files
 *.ctxt
-
-# Mobile Tools for Java (J2ME)
 .mtj.tmp/
+hs_err_pid*
+replay_pid*
 
-# Package Files #
+# ============================
+# 패키지 아카이브
+# ============================
+# 빌드 결과 jar는 build/ 안에 있지만, 혹시 루트에 생길 경우 대비
 *.jar
 *.war
 *.nar
@@ -19,6 +61,15 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
+# ============================
+# Kotlin 빌드 메타데이터
+# ============================
+*.kotlin_module
+
+# ============================
+# macOS 시스템 파일
+# ============================
+.DS_Store
+
+# (선택) Windows
+Thumbs.db
