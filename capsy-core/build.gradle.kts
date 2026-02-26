@@ -3,11 +3,10 @@ plugins {
     java
 }
 
-// 지금 단계(v0.1)에서는 외부 라이브러리 의존성 없음
-// 나중에 필요하면 여기에 추가 가능 (예: Jackson, logging, test libs)
-/*
 dependencies {
-    // implementation("com.fasterxml.jackson.core:jackson-databind:...")
-    // testImplementation("org.junit.jupiter:junit-jupiter:...")
+    // JUnit 5: 테스트 실행 엔진 + API
+    // testImplementation = 테스트 컴파일/실행에만 포함, 배포 jar에는 안 들어감
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
+    // Gradle 9 + JUnit 5 조합에서 런타임 런처가 명시적으로 필요
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
-*/

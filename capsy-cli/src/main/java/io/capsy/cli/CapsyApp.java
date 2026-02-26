@@ -1,160 +1,184 @@
 package io.capsy.cli;
 
 import io.capsy.core.CapsyInitializer;
+import io.capsy.core.WorklogWriter;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDate;
-import java.util.Arrays;
 
-/**
- * Capsy CLI의 진입점(main) 클래스.
- *
- * 역할:
- * - 사용자 입력(args)을 받고
- * - 명령어(init/cp/day/next/open)를 분기 처리
- * - core 로직 호출
- *
- * 현재 단계(v0.1 초반):
- * - init만 실제 동작
- * - cp/day/next/open은 stub(메시지 출력)로 준비
- */
 public class CapsyApp {
 
     public static void main(String[] args) {
+        CapsyApp app = new CapsyApp();
+        int exitCode = app.run(args);
+        System.exit(exitCode);
+    }
+
+    public int run(String[] args) {
         try {
-            new CapsyApp().run(args);
-        } catch (Exception e) {
-            // 초반 단계라 단순 에러 출력
-            // 나중에 커스텀 예외/에러코드/로그 구조로 발전 가능
-            System.err.println("[Capsy][ERROR] " + e.getMessage());
-            System.exit(1);
-        }
-    }
+            CommandRequest request = parse(args);
 
-    /**
-     * 전체 명령어 라우팅 담당 메서드.
-     */
-    private void run(String[] args) throws Exception {
-        if (args.length == 0) {
-            printUsage();
-            return;
-        }
+            switch (request.command) {
+                case "init":
+                    return handleInit();
 
-        String command = args[0];
+                case "cp":
+                    return handleCheckpoint(request.message);
 
-        // Java 14+ switch expression 스타일 (네가 Java 주력이라 읽기 좋을 것)
-        switch (command) {
-            case "init" -> handleInit();
-            case "cp"   -> handleCheckpoint(Arrays.copyOfRange(args, 1, args.length));
-            case "day"  -> handleEndday(Arrays.copyOfRange(args, 1, args.length));
-            case "next" -> handleNext();
-            case "open" -> handleOpen(Arrays.copyOfRange(args, 1, args.length));
-            case "help", "--help", "-h" -> printUsage();
-            default -> {
-                System.out.println("[Capsy] Unknown command: " + command);
-                printUsage();
+                case "day":
+                    return handleEndday(request.message);
+
+                case "help":
+                case "-h":
+                case "--help":
+                    printUsage();
+                    return 0;
+
+                default:
+                    System.err.println("❌ 알 수 없는 명령어: " + request.command);
+                    printUsage();
+                    return 1;
             }
+        } catch (IllegalArgumentException e) {
+            // 사용자 입력 오류 (빈 메시지 등) → 사용법 안내
+            System.err.println("❌ 입력 오류: " + e.getMessage());
+            printUsage();
+            return 1;
+        } catch (IllegalStateException e) {
+            // 잘못된 상태 (init 미실행 등) → 사용법 불필요, 메시지만
+            System.err.println("❌ " + e.getMessage());
+            return 1;
+        } catch (IOException e) {
+            // 파일 시스템 오류
+            System.err.println("❌ 파일 처리 오류: " + e.getMessage());
+            return 2;
+        } catch (Exception e) {
+            // 예상 못한 오류 (v0.1에서는 메시지만)
+            System.err.println("❌ 예상치 못한 오류: " + e.getMessage());
+            return 9;
         }
     }
 
     /**
-     * capsy init
-     *
-     * 현재 작업 디렉토리(cwd)를 기준으로 .capsy 초기화.
-     *
-     * Path.of("") 의미:
-     * - "현재 실행 중인 디렉토리"를 Path로 가져옴
-     * - capsy를 어떤 프로젝트 루트에서 실행하느냐가 중요하므로 적합함
+     * CLI 인자를 파싱해서 command + message 구조로 변환
      */
-    private void handleInit() throws Exception {
-        Path cwd = Path.of("").toAbsolutePath().normalize();
-        new CapsyInitializer().init(cwd);
-    }
-
-    /**
-     * capsy cp <memo...>
-     *
-     * 아직 stub:
-     * - 나중에 중간 체크포인트를 worklog에 append
-     * - LLM/fallback 요약 파이프라인 연결 예정
-     */
-    private void handleCheckpoint(String[] memoArgs) {
-        String memo = String.join(" ", memoArgs).trim();
-
-        if (memo.isBlank()) {
-            System.out.println("[Capsy][cp] memo is empty (stub)");
-            return;
+    private CommandRequest parse(String[] args) {
+        if (args == null || args.length == 0) {
+            return new CommandRequest("help", "");
         }
 
-        System.out.println("[Capsy][cp] checkpoint memo (stub): " + memo);
-    }
+        String command = args[0].trim().toLowerCase();
 
-    /**
-     * capsy day <memo...>
-     *
-     * 아직 stub:
-     * - 나중에 End-of-day 요약 생성
-     * - tasks.md 갱신 (다음 세션용)
-     */
-    private void handleEndday(String[] memoArgs) {
-        String memo = String.join(" ", memoArgs).trim();
-
-        if (memo.isBlank()) {
-            System.out.println("[Capsy][day] memo is empty (stub)");
-            return;
+        // 메시지가 필요한 명령어(cp/day)만 뒤 인자를 합침
+        if ("cp".equals(command) || "day".equals(command)) {
+            String message = joinArgs(args, 1);
+            if (message.trim().isEmpty()) {
+                throw new IllegalArgumentException("'" + command + "' 명령에는 메시지가 필요합니다.");
+            }
+            return new CommandRequest(command, message);
         }
 
-        System.out.println("[Capsy][day] endday memo (stub): " + memo);
+        // init/help는 메시지 없어도 됨
+        return new CommandRequest(command, "");
+    }
+
+    private int handleInit() throws IOException {
+        Path root = resolveProjectRoot();
+        new CapsyInitializer().init(root);   // 파일 시스템 로직은 core에 위임
+
+        System.out.println("✅ Capsy 초기화 완료");
+        System.out.println("   root: " + root);
+        System.out.println("   created/checked: .capsy/, .capsy/prompts/, .capsy/worklog/, .capsy/tasks.md");
+        return 0;
+    }
+
+    private int handleCheckpoint(String message) throws IOException {
+        Path root = resolveProjectRoot();
+        requireInitialized(root);
+        WorklogWriter writer = new WorklogWriter(root);
+
+        Path savedFile = writer.appendCheckpoint(message);
+
+        System.out.println("✅ checkpoint 저장 완료");
+        System.out.println("   file: " + savedFile);
+        return 0;
+    }
+
+    private int handleEndday(String message) throws IOException {
+        Path root = resolveProjectRoot();
+        requireInitialized(root);
+        WorklogWriter writer = new WorklogWriter(root);
+
+        Path savedFile = writer.appendEndday(message);
+
+        System.out.println("✅ endday 저장 완료");
+        System.out.println("   file: " + savedFile);
+        return 0;
     }
 
     /**
-     * capsy next
-     *
-     * 아직 stub:
-     * - .capsy/tasks.md 읽어서 Next 3 출력 예정
+     * 실행 위치 기준 루트 경로 계산
+     * (Gradle run의 workingDir를 rootProject로 맞췄다는 전제)
      */
-    private void handleNext() {
-        System.out.println("[Capsy][next] TODO: read .capsy/tasks.md and print Next 3");
+    private Path resolveProjectRoot() {
+        return Path.of("").toAbsolutePath().normalize();
     }
 
     /**
-     * capsy open tasks|today
+     * cp/day 실행 전 .capsy 초기화 여부 확인.
      *
-     * 아직 stub:
-     * - tasks.md 또는 오늘 worklog 파일을 여는 동작 예정
-     * - OS별 open 명령 처리(ProcessBuilder)로 확장 가능
+     * 왜 IllegalStateException인가?
+     * - IllegalArgumentException: 사용자 입력값이 잘못됐을 때
+     * - IllegalStateException:    입력은 맞지만 실행 가능한 상태가 아닐 때 (init 미실행)
      */
-    private void handleOpen(String[] args) {
-        if (args.length == 0) {
-            System.out.println("[Capsy][open] usage: capsy open tasks|today");
-            return;
-        }
-
-        String target = args[0];
-
-        if ("tasks".equals(target)) {
-            System.out.println("[Capsy][open] TODO: open .capsy/tasks.md");
-        } else if ("today".equals(target)) {
-            String today = LocalDate.now().toString();
-            System.out.println("[Capsy][open] TODO: open .capsy/worklog/" + today + ".md");
-        } else {
-            System.out.println("[Capsy][open] unknown target: " + target);
+    private void requireInitialized(Path root) {
+        if (!Files.isDirectory(root.resolve(".capsy"))) {
+            throw new IllegalStateException(
+                    "Capsy가 초기화되지 않았습니다. 먼저 'capsy init'을 실행하세요.\n"
+                    + "   대상 경로: " + root
+            );
         }
     }
 
     /**
-     * CLI 도움말 출력
+     * args[startIndex..] 를 공백으로 이어붙임
+     * 예: ["cp", "오늘", "셋업", "완료"] -> "오늘 셋업 완료"
      */
+    private String joinArgs(String[] args, int startIndex) {
+        if (args == null || startIndex >= args.length) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = startIndex; i < args.length; i++) {
+            if (i > startIndex) {
+                sb.append(' ');
+            }
+            sb.append(args[i]);
+        }
+        return sb.toString();
+    }
+
     private void printUsage() {
-        System.out.println("""
-                Capsy - developer work capsule CLI (v0.1 alpha)
+        System.out.println();
+        System.out.println("Capsy v0.1 (LLM-ready worklog helper)");
+        System.out.println();
+        System.out.println("사용법:");
+        System.out.println("  capsy init");
+        System.out.println("  capsy cp  <메시지>");
+        System.out.println("  capsy day <메시지>");
+        System.out.println("  capsy help");
+        System.out.println();
+        System.out.println("예시:");
+        System.out.println("  capsy cp  IntelliJ/Gradle 멀티모듈 셋업 완료");
+        System.out.println("  capsy day 오늘은 init + 구조 + 푸시까지 완료");
+        System.out.println();
+    }
 
-                Usage:
-                  capsy init
-                  capsy cp <memo...>
-                  capsy day <memo...>
-                  capsy next
-                  capsy open tasks|today
-                """);
+    /**
+         * command + message 구조를 명확히 하기 위한 내부 DTO
+         */
+        private record CommandRequest(String command, String message) {
     }
 }

@@ -11,6 +11,9 @@ dependencies {
 
 application {
     mainClass.set("io.capsy.cli.CapsyApp")
+    // installDist 결과물의 실행 파일 이름을 capsy-cli 대신 capsy 로 고정
+    // build/install/capsy/bin/capsy 로 생성됨
+    applicationName = "capsy"
 }
 
 // :capsy-cli:run 실행 시 작업 디렉토리를 레포 루트(capsy)로 고정
