@@ -60,12 +60,14 @@ capsy day 오늘 API 3개 완성, 내일 테스트 작성 예정
 ├── tasks.md                          할 일 목록 (직접 관리)
 ├── worklog/
 │   └── YYYY-MM-DD.md                 날짜별 cp/day 기록
-└── prompts/
-    ├── checkpoint.user.txt           cp 요약 프롬프트 (편집 가능)
-    └── endday.user.txt               day 요약 프롬프트 (편집 가능)
+├── prompts/
+│   ├── checkpoint.user.txt           cp 프롬프트 템플릿 (편집 가능)
+│   └── endday.user.txt               day 프롬프트 템플릿 (편집 가능)
+├── schemas/                          (v0.2 예정 — 빈 디렉토리)
+└── runs/                             (v0.2 예정 — 빈 디렉토리)
 ```
 
-`prompts/` 안의 파일은 사용자가 직접 편집할 수 있다. v0.2에서 LLM 연동 시 이 파일이 주입 템플릿으로 사용된다.
+`schemas/`와 `runs/`는 v0.1에서 디렉토리만 생성된다. 내용(LLM 실행 기록, 스키마 정의)은 v0.2에서 채워질 예정이다.
 
 ---
 
@@ -85,8 +87,8 @@ capsy/
 
 | 버전 | 상태 | 내용 |
 |------|------|------|
-| v0.1 | ✅ released | 로컬 worklog 하네스. `cp`/`day` → `.capsy/worklog/` |
-| v0.2 | 🔲 planned | LLM 브리지 (벤더 중립), `.capsy/runs/` 실행 기록, `next` 명령 |
+| v0.1 | ✅ released | 로컬 worklog 하네스. `cp`/`day` → `.capsy/worklog/`. `schemas/`, `runs/` 디렉토리 예약 생성 |
+| v0.2 | 🔲 planned | LLM 브리지 (벤더 중립), `runs/` 실행 기록 활성화, `next` 명령 |
 
 ---
 
