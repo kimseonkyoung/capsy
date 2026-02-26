@@ -15,13 +15,6 @@
 build/
 out/
 
-# Gradle Wrapper 실행 파일/설정은 커밋 대상 (재현 가능한 빌드를 위해 필요)
-# *.jar ignore에 걸리지 않도록 wrapper jar만 예외 허용
-!gradlew
-!gradlew.bat
-!gradle/wrapper/gradle-wrapper.jar
-!gradle/wrapper/gradle-wrapper.properties
-
 # ============================
 # IntelliJ IDEA 설정
 # ============================
@@ -60,6 +53,16 @@ replay_pid*
 *.zip
 *.tar.gz
 *.rar
+
+# ============================
+# Gradle Wrapper 예외 허용
+# ============================
+# gitignore는 "마지막 매칭 규칙이 이긴다".
+# *.jar 규칙 뒤에 와야 예외가 제대로 적용됨.
+!gradlew
+!gradlew.bat
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
 
 # ============================
 # Kotlin 빌드 메타데이터
